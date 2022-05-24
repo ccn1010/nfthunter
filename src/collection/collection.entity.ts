@@ -6,6 +6,9 @@ export class CollectionEntity {
   contractAddress: string;
 
   @Column()
+  mintType: string;
+
+  @Column()
   compilerVersion: string;
 
   @Column()

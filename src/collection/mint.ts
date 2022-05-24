@@ -46,7 +46,7 @@ export class Mint {
     return result.data.result;
   }
 
-  async deployContract(codeDatas, callback) {
+  async deployContract(codeDatas, contractPath, callback) {
     const network = 'eth';
     const codeData = codeDatas[0];
     const sourceCode = parseSourceCodeObject(codeData.SourceCode, network);
@@ -73,7 +73,10 @@ export class Mint {
     const tempFile = JSON.parse(solc.compile(JSON.stringify(input)));
     // const contractFile = tempFile.contracts['contract.sol']['SAC'];
     console.log('tempFile.contracts', tempFile);
-    const contractFile = tempFile.contracts['contracts/cpgpop.sol']['CPGPOP'];
+    let contractFile = tempFile.contracts;
+    contractPath.forEach((path) => {
+      contractFile = contractFile[path];
+    });
 
     const bytecode = contractFile.evm.bytecode.object;
     const abi = contractFile.abi;
@@ -212,7 +215,7 @@ export class Mint {
       JSON.parse(abi),
       contractAddress,
     );
-    console.log('methodmethodmethod', method, args);
+    console.log('CALL METHOD', method, args);
     return contract.methods[method](...args).call();
     // return contract.methods[method](...args).call({from: this.config.fromAddress}, (error)=>{
     //     console.log('eeeee', error)
@@ -224,11 +227,15 @@ export class Mint {
       JSON.parse(abi),
       contractAddress,
     );
-    console.log('methodmethodmethod', method, args);
+    console.log('SEND METHOD', method, args);
     const extraData = await contract.methods[method](...args);
     const data = extraData.encodeABI();
+    const nonce = await this.web3.eth.getTransactionCount(config.fromAddress);
+    console.log('nonce', nonce);
     const transaction: any = {
-      gas: 100000,
+      maxPriorityFeePerGas: this.web3.utils.toWei('2.5', 'gwei'),
+      // nonce: nonce + 1,
+      gas: 1000000,
       to: contractAddress,
       data: this.web3.utils.toHex(data),
     };
@@ -238,8 +245,11 @@ export class Mint {
     );
     this.web3.eth
       .sendSignedTransaction(signedTx.rawTransaction)
+      .on('error', (error) => {
+        console.log('SEND METHOD ERROR', error);
+      })
       .on('receipt', (...args) => {
-        console.log('SEND METHOD', args);
+        console.log('SEND METHOD DONE', args);
       });
     // TODO 使用alchemy的api
     // return contract.methods[method](...args).send({from: this.config.fromAddress}, (error)=>{

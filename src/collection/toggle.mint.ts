@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import abiDecoder from 'abi-decoder';
 import { Mint } from './mint';
 
+enum Step {
+  Listen = 'LISTEN',
+}
+
 @Injectable()
 export class ToggleMint extends Mint {
   owner;

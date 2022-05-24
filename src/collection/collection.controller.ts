@@ -5,6 +5,7 @@ import { CollectionsRO, CollectionRO } from './collection.interface';
 import { Mint } from './mint';
 import { ToggleMint } from './toggle.mint';
 import { EventsGateway } from 'src/events/events.gateway';
+import { ScheduleMint } from './schedule.mint';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const abiDecoder = require('abi-decoder');
 
@@ -14,10 +15,11 @@ export class CollectionController {
     private readonly collectionService: CollectionService,
     private readonly mint: Mint,
     private readonly toggleMint: ToggleMint,
+    private readonly scheduleMint: ScheduleMint,
     private readonly eventsGateway: EventsGateway,
   ) {}
 
-  @Get('test')
+  @Get('test111')
   test() {
     const decodedData = abiDecoder.decodeMethod(
       '0x53d9d9100000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000a6d9c5f7d4de3cef51ad3b7235d79ccc95114de5000000000000000000000000a6d9c5f7d4de3cef51ad3b7235d79ccc95114daa',
@@ -83,7 +85,11 @@ export class CollectionController {
 
   @Get(':address')
   async findOne(@Param('address') address): Promise<CollectionRO> {
-    return await this.collectionService.findOne({ contractAddress: address });
+    const entity = await this.collectionService.findOne({
+      contractAddress: address,
+    });
+
+    return entity;
   }
 
   @Get(':collection')
@@ -107,6 +113,14 @@ export class CollectionController {
     this.toggleMint.boot(collection);
   }
 
+  @Put(':address/scheduleTest')
+  async scheduleTest(@Param('address') address) {
+    const { collection } = await this.collectionService.findOne({
+      contractAddress: address,
+    });
+    this.scheduleMint.boot(collection);
+  }
+
   @Put(':address')
   async put(@Param('address') address, @Body() body) {
     this.collectionService.update(address, body);
@@ -120,6 +134,11 @@ export class CollectionController {
       return;
     }
 
+    if (sourceCodes.length > 1) {
+      console.error('Too many SourceCodes======================');
+      return;
+    }
+
     const sourceCode = sourceCodes[0];
     if (sourceCode.SourceCode === '') {
       console.error('Invalid Address');
@@ -130,22 +149,50 @@ export class CollectionController {
     const data = {
       contractAddress: body.address,
       contractName: sourceCode.ContractName,
+      mintType: body.mintType,
       compilerVersion: sourceCode.CompilerVersion,
       constructorArguments: sourceCode.ConstructorArguments,
       abi: sourceCode.ABI,
       sourceCode: sourceCode.SourceCode,
     };
-    const entity = await this.collectionService.create(data);
-    console.log('entity', entity);
-    await this.mint.deployContract(sourceCodes, (error, trx) => {
-      if (error) {
-        console.error('DEPLOY ERROR', error);
-        return;
-      }
+    const collection = await this.collectionService.create(data);
+    console.log('entity', collection);
+    this.mint.deployContract(
+      sourceCodes,
+      ['contracts/ALFIE.sol', 'ALFIE'],
+      (error, trx) => {
+        if (error) {
+          console.error('DEPLOY ERROR', error);
+          return;
+        }
 
-      this.collectionService.update(entity.contractAddress, {
-        ropstenContractAddress: trx.contractAddress,
-      });
+        this.collectionService.update(collection.contractAddress, {
+          ropstenContractAddress: trx.contractAddress,
+        });
+      },
+    );
+    return collection;
+  }
+
+  @Post(':address/deploy')
+  async deploy(@Param('address') address, @Body() body) {
+    const { collection } = await this.collectionService.findOne({
+      contractAddress: address,
     });
+    console.log('body', body);
+    await this.mint.deployContract(
+      collection.sourceCode,
+      body.contractPath,
+      (error, trx) => {
+        if (error) {
+          console.error('DEPLOY ERROR', error);
+          return;
+        }
+
+        this.collectionService.update(collection.contractAddress, {
+          ropstenContractAddress: trx.contractAddress,
+        });
+      },
+    );
   }
 }

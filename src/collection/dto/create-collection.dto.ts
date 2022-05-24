@@ -1,6 +1,7 @@
 export class CreateCollectionDto {
   readonly contractAddress: string;
   readonly contractName: string;
+  readonly mintType: string;
   readonly compilerVersion: string;
   readonly constructorArguments: string;
   readonly abi: string;

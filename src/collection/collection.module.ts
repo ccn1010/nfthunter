@@ -11,10 +11,16 @@ import { CollectionService } from './collection.service';
 import { Mint } from './mint';
 import { ToggleMint } from './toggle.mint';
 import { EventsModule } from 'src/events/events.module';
+import { MonitorModule } from 'src/monitor/monitor.module';
+import { ScheduleMint } from './schedule.mint';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CollectionEntity]), EventsModule],
-  providers: [Mint, ToggleMint, CollectionService],
+  imports: [
+    TypeOrmModule.forFeature([CollectionEntity]),
+    EventsModule,
+    MonitorModule,
+  ],
+  providers: [Mint, ToggleMint, ScheduleMint, CollectionService],
   controllers: [CollectionController],
   exports: [CollectionService],
 })

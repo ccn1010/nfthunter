@@ -53,6 +53,7 @@ export class CollectionService {
     const collection = new CollectionEntity();
     collection.contractAddress = collectionData.contractAddress;
     collection.contractName = collectionData.contractName;
+    collection.mintType = collectionData.mintType;
     collection.compilerVersion = collectionData.compilerVersion;
     collection.constructorArguments = collectionData.constructorArguments;
     collection.abi = collectionData.abi;
