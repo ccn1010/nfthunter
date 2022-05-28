@@ -43,11 +43,6 @@ export class Deployment {
     const codeData = codeDatas[0];
     const sourceCode = parseSourceCodeObject(codeData.SourceCode, network);
     const contractContents = getContractContentList(codeDatas, network);
-    // setContract({
-    //     name: sourceCodes[0].ContractName,
-    //     address: contractAddress,
-    //     contents: contractContents,
-    // });
 
     const sources = {};
     contractContents.forEach((item) => {
@@ -62,8 +57,7 @@ export class Deployment {
     };
 
     const tempFile = JSON.parse(solc.compile(JSON.stringify(input)));
-    // const contractFile = tempFile.contracts['contract.sol']['SAC'];
-    console.log('tempFile.contracts', tempFile);
+    // console.log('tempFile.contracts', tempFile);
     return tempFile.contracts;
   }
 
@@ -93,28 +87,6 @@ export class Deployment {
     // Deploy contract
 
     const deploy = async () => {
-      // const trxs = await axios.get(
-      //     'https://api.etherscan.io/api'
-      //     , {
-      //         params: {
-      //             module: 'account',
-      //             action: 'txlist',
-      //             address: contractAddress,
-      //             startblock: 0,
-      //             endblock: 99999999,
-      //             page: 1,
-      //             offset: 1,
-      //             sort: 'asc',
-      //             apikey: 'XC3945P8NJNGAEBKEIDWTDB39VJG6YPZFN',
-      //         },
-      //     }).catch(e=>{
-      //         console.log(e)
-      //         return null;
-      //     })
-      // console.log('trxs', )
-      // const trx = trxs.data.result[0];
-      // const argsInput = trx.input.replace(bytecode, '');
-      // console.log('argsInputargsInput', sourceCodes[0].ConstructorArguments, argsInput)
       const argsObj = this.web3.eth.abi.decodeParameters(
         argTypeArray,
         codeData.ConstructorArguments,

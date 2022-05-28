@@ -20,12 +20,6 @@ export class CollectionEntity {
   @Column('longtext')
   abi: string;
 
-  @Column('longtext')
-  sourceCode: string;
-
-  @Column('json')
-  sourceCodes: {[key: string]: any}[];
-
   @Column('json')
   contractPathList: {[key: string]: any}[];
 

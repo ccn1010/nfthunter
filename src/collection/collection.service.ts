@@ -57,8 +57,6 @@ export class CollectionService {
     collection.compilerVersion = collectionData.compilerVersion;
     collection.constructorArguments = collectionData.constructorArguments;
     collection.abi = collectionData.abi;
-    collection.sourceCode = collectionData.sourceCode;
-    collection.sourceCodes = collectionData.sourceCodes;
     collection.contractPathList = collectionData.contractPathList;
     collection.createdAt = Date.now();
 

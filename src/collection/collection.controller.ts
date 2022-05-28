@@ -170,8 +170,6 @@ export class CollectionController {
       constructorArguments: sourceCode.ConstructorArguments,
       contractPathList: contractPathList,
       abi: sourceCode.ABI,
-      sourceCode: sourceCode.SourceCode,
-      sourceCodes: sourceCodes,
     };
 
     const collection = await this.collectionService.create(data);
