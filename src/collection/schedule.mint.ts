@@ -5,7 +5,7 @@ import { Mint } from './mint';
 @Injectable()
 export class ScheduleMint extends Mint {
   mintQueue = [];
-  saleAt;
+  saleAt = 0;
   baseFee;
   isListening = false;
   isMinted = false;
@@ -32,19 +32,24 @@ export class ScheduleMint extends Mint {
     this.web3.eth
       .subscribe('newBlockHeaders')
       .on('data', async (blockHeader) => {
-        console.log('NEW BLOCK ============');
+        this.mintQueue = [];
+        // console.log('NEW BLOCK ============', new Date(parseInt(this.saleAt)));
+        const beginTime = this.saleAt - 60;
+        if (Date.now() / 1000 < beginTime) {
+          return;
+        }
 
         this.baseFee = await this.web3.eth.getGasPrice();
         this.saleAt = await this.callMethod(
           collection.abi,
-          collection.ropstenContractAddress,
+          collection.contractAddress,
           readFns[mintConfig.saleAtRead.method].name,
           mintConfig.saleAtRead.args,
         );
 
         this.price = await this.callMethod(
           collection.abi,
-          collection.ropstenContractAddress,
+          collection.contractAddress,
           readFns[mintConfig.priceRead.method].name,
           mintConfig.priceRead.args,
         );
@@ -59,8 +64,8 @@ export class ScheduleMint extends Mint {
   }
 
   async listen(collection, abi, readFns, writeFns, mintConfig) {
-    const beginTime = this.saleAt - 10000;
-    // const beginTime = this.saleAt - 10;
+    // const beginTime = this.saleAt - 10000;
+    const beginTime = this.saleAt - 10;
     console.log(
       'dddd',
       new Date(),
@@ -78,14 +83,14 @@ export class ScheduleMint extends Mint {
       method: writeFns[mintConfig.mintWrite.method].name,
       args: mintConfig.mintWrite.args,
     };
-    await this.warmup(abi, mintFn, collection.ropstenContractAddress);
+    await this.warmup(abi, mintFn, collection.contractAddress);
 
     const timer = setInterval(() => {
       if (this.isMinted) {
         return;
       }
 
-      if (Math.ceil(Date.now() / 1000) < this.saleAt - 1) {
+      if (Math.ceil(Date.now() / 1000) < this.saleAt + 1) {
         return;
       }
       // if(this.mintQueue.length > 50 && this.mintQueue.length / 30)
@@ -98,35 +103,29 @@ export class ScheduleMint extends Mint {
         return;
       }
 
-      const max = this.mintQueue[0];
-
       // const cost = Math.min(
       //   this.baseFee + max.maxPriorityFeePerGas,
       //   max.maxFeePerGas,
       // );
-      const cost = max.gasPrice * 316849;
-      const maxCost = parseInt(this.web3.utils.toWei('0.02', 'ether'));
+      const maxCost = parseInt(this.web3.utils.toWei('0.03', 'ether'));
       // FIXME 这里有问题，最大花费是 gasPrice * gasUsed,不是这里写的
-      console.log(
-        'ccccc',
-        cost,
-        max,
-        maxCost,
-        this.price,
-        this.mintQueue.length,
-        cost > maxCost,
-      );
-      if (cost > maxCost) {
-        console.log(`超出预算，需花费燃气${cost}`);
+
+      for (const item of this.mintQueue) {
+        const curCost = item.gasPrice * 316849;
+        if (curCost > maxCost) {
+          console.log(`超出预算，需花费燃气${curCost}`);
+          continue;
+        }
+
+        console.log('开始mint', item.maxPriorityFeePerGas, item.maxFeePerGas);
+        this.send(
+          collection.contractAddress,
+          item.maxPriorityFeePerGas && item.maxPriorityFeePerGas + 1,
+          item.maxFeePerGas && item.maxFeePerGas + 1,
+        );
         return;
       }
-
-      console.log('开始mint', max.maxPriorityFeePerGas, max.maxFeePerGas);
-      this.send(
-        collection.ropstenContractAddress,
-        max.maxPriorityFeePerGas && max.maxPriorityFeePerGas + 1,
-        max.maxFeePerGas && max.maxFeePerGas + 1,
-      );
+      console.log('没mint成功', this.mintQueue);
     }, 500);
 
     this.web3.eth

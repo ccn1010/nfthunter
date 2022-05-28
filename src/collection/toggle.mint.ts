@@ -34,14 +34,14 @@ export class ToggleMint extends Mint {
 
     this.price = await this.callMethod(
       collection.abi,
-      collection.ropstenContractAddress,
+      collection.contractAddress,
       readFns[mintConfig.priceRead.method].name,
       mintConfig.priceRead.args,
     );
     console.log('this.price', this.price);
     this.owner = await this.callMethod(
       collection.abi,
-      collection.ropstenContractAddress,
+      collection.contractAddress,
       readFns[mintConfig.ownerRead.method].name,
       mintConfig.ownerRead.args,
     );
@@ -50,18 +50,18 @@ export class ToggleMint extends Mint {
       method: writeFns[mintConfig.mintWrite.method].name,
       args: mintConfig.mintWrite.args,
     };
-    await this.warmup(abi, mintFn, collection.ropstenContractAddress);
+    await this.warmup(abi, mintFn, collection.contractAddress);
 
     this.web3.eth.subscribe('newBlockHeaders', async (block) => {
       this.price = await this.callMethod(
         collection.abi,
-        collection.ropstenContractAddress,
+        collection.contractAddress,
         readFns[mintConfig.priceRead.method].name,
         mintConfig.priceRead.args,
       );
       this.owner = await this.callMethod(
         collection.abi,
-        collection.ropstenContractAddress,
+        collection.contractAddress,
         readFns[mintConfig.ownerRead.method].name,
         mintConfig.ownerRead.args,
       );
@@ -69,7 +69,7 @@ export class ToggleMint extends Mint {
 
     const isSaleActive = await this.callMethod(
       collection.abi,
-      collection.ropstenContractAddress,
+      collection.contractAddress,
       readFns[mintConfig.saleActiveRead.method].name,
       mintConfig.saleActiveRead.args,
     );
@@ -117,7 +117,7 @@ export class ToggleMint extends Mint {
         console.log('FIND TOGGLE');
 
         this.send(
-          collection.ropstenContractAddress,
+          collection.contractAddress,
           transaction.maxPriorityFeePerGas,
           transaction.maxFeePerGas,
         );

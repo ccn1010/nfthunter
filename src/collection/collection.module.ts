@@ -13,6 +13,7 @@ import { ToggleMint } from './toggle.mint';
 import { EventsModule } from 'src/events/events.module';
 import { MonitorModule } from 'src/monitor/monitor.module';
 import { ScheduleMint } from './schedule.mint';
+import { Deployment } from './deployment';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { ScheduleMint } from './schedule.mint';
     EventsModule,
     MonitorModule,
   ],
-  providers: [Mint, ToggleMint, ScheduleMint, CollectionService],
+  providers: [Mint, ToggleMint, ScheduleMint, Deployment, CollectionService],
   controllers: [CollectionController],
   exports: [CollectionService],
 })

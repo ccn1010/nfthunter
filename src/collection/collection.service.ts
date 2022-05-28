@@ -49,7 +49,7 @@ export class CollectionService {
 
   async create(
     collectionData: Partial<CreateCollectionDto>,
-  ): Promise<CollectionEntity> {
+  ) {
     const collection = new CollectionEntity();
     collection.contractAddress = collectionData.contractAddress;
     collection.contractName = collectionData.contractName;
@@ -58,10 +58,11 @@ export class CollectionService {
     collection.constructorArguments = collectionData.constructorArguments;
     collection.abi = collectionData.abi;
     collection.sourceCode = collectionData.sourceCode;
+    collection.sourceCodes = collectionData.sourceCodes;
+    collection.contractPathList = collectionData.contractPathList;
     collection.createdAt = Date.now();
 
-    const newCollection = await this.collectionRepository.save(collection);
-
+    const newCollection = await this.collectionRepository.insert(collection);
     return newCollection;
   }
 
@@ -71,6 +72,11 @@ export class CollectionService {
 
   async clear(): Promise<void> {
     const ret = await this.collectionRepository.clear();
+    return ret;
+  }
+
+  async remove(contractAddress: string): Promise<any> {
+    const ret = await this.collectionRepository.delete(contractAddress);
     return ret;
   }
 }

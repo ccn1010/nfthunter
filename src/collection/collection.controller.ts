@@ -1,4 +1,5 @@
-import { Get, Post, Body, Put, Query, Param, Controller } from '@nestjs/common';
+import { Get, Post, Body, Put, Query, Param, Controller, Delete } from '@nestjs/common';
+import _ from 'lodash';
 import { CollectionService } from './collection.service';
 import { CreateCollectionDto } from './dto';
 import { CollectionsRO, CollectionRO } from './collection.interface';
@@ -6,6 +7,7 @@ import { Mint } from './mint';
 import { ToggleMint } from './toggle.mint';
 import { EventsGateway } from 'src/events/events.gateway';
 import { ScheduleMint } from './schedule.mint';
+import { Deployment } from './deployment';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const abiDecoder = require('abi-decoder');
 
@@ -16,6 +18,7 @@ export class CollectionController {
     private readonly mint: Mint,
     private readonly toggleMint: ToggleMint,
     private readonly scheduleMint: ScheduleMint,
+    private readonly deployment: Deployment,
     private readonly eventsGateway: EventsGateway,
   ) {}
 
@@ -60,7 +63,7 @@ export class CollectionController {
     console.log('collection', args);
     return this.mint.callMethod(
       collection.abi,
-      collection.ropstenContractAddress,
+      collection.contractAddress,
       method,
       args,
     );
@@ -77,7 +80,7 @@ export class CollectionController {
     });
     this.mint.sendMethod(
       collection.abi,
-      collection.ropstenContractAddress,
+      collection.contractAddress,
       method,
       args,
     );
@@ -128,7 +131,7 @@ export class CollectionController {
 
   @Post()
   async create(@Body() body) {
-    const sourceCodes = await this.mint.getContractSourceCodes(body.address);
+    const sourceCodes = await this.deployment.getContractSourceCodes(body.address);
     if (sourceCodes === 'Invalid API Key') {
       console.error('Invalid API Key');
       return;
@@ -145,33 +148,40 @@ export class CollectionController {
       return;
     }
 
-    // console.log('resresres', sourceCodes)
+    const contracts = await this.deployment.getContracts(sourceCodes);
+    const contractPathList = Object.entries(contracts).map(([key, value])=>{
+          return {
+            value: key,
+            label: key,
+            children: _.keys(value).map(item=>{
+              return {
+                value: item,
+                label: item,
+              };
+            }),
+          };
+    });
+    // console.log('contractPathList', contractPathList);
     const data = {
       contractAddress: body.address,
       contractName: sourceCode.ContractName,
       mintType: body.mintType,
       compilerVersion: sourceCode.CompilerVersion,
       constructorArguments: sourceCode.ConstructorArguments,
+      contractPathList: contractPathList,
       abi: sourceCode.ABI,
       sourceCode: sourceCode.SourceCode,
+      sourceCodes: sourceCodes,
     };
-    const collection = await this.collectionService.create(data);
-    console.log('entity', collection);
-    this.mint.deployContract(
-      sourceCodes,
-      ['contracts/ALFIE.sol', 'ALFIE'],
-      (error, trx) => {
-        if (error) {
-          console.error('DEPLOY ERROR', error);
-          return;
-        }
 
-        this.collectionService.update(collection.contractAddress, {
-          ropstenContractAddress: trx.contractAddress,
-        });
-      },
-    );
+    const collection = await this.collectionService.create(data);
     return collection;
+  }
+
+  @Delete(':address')
+  async remove(@Param('address') address) {
+    const ret = await this.collectionService.remove(address);
+    return ret;
   }
 
   @Post(':address/deploy')
@@ -180,8 +190,10 @@ export class CollectionController {
       contractAddress: address,
     });
     console.log('body', body);
-    await this.mint.deployContract(
-      collection.sourceCode,
+    const sourceCodes = await this.deployment.getContractSourceCodes(address);
+
+    this.deployment.deployContract(
+      sourceCodes,
       body.contractPath,
       (error, trx) => {
         if (error) {

@@ -6,7 +6,7 @@ export const config = Object.freeze({
     {
       address: '0x8751cB6Eff64bAc07f772Bc902b07264f21b9B84'.toLocaleLowerCase(),
       privateKey:
-        '78627cc25cfd9147bf5934dd07cec61a72c4eddc7b9827566824afd6196c3951',
+        '264d9d3680533b09336a874a0a3482ac23f1e3cc646d982899d77d435b8868c0',
     },
   ],
 });

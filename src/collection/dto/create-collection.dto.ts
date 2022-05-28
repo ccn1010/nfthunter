@@ -6,7 +6,9 @@ export class CreateCollectionDto {
   readonly constructorArguments: string;
   readonly abi: string;
   readonly sourceCode: string;
-  readonly mint: { [key: string]: any };
+  readonly sourceCodes: {[key: string]: any}[];
+  readonly contractPathList: {[key: string]: any}[];
+  readonly mintConfig: { [key: string]: any };
   readonly ropstenContractAddress: string;
   readonly createdAt: number;
 }

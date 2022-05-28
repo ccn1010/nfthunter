@@ -23,8 +23,14 @@ export class CollectionEntity {
   @Column('longtext')
   sourceCode: string;
 
+  @Column('json')
+  sourceCodes: {[key: string]: any}[];
+
+  @Column('json')
+  contractPathList: {[key: string]: any}[];
+
   @Column('json', { nullable: true })
-  mintConfig: string;
+  mintConfig: {[key: string]: any};
 
   @Column({ nullable: true })
   ropstenContractAddress: string;
