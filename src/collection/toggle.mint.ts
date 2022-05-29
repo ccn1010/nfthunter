@@ -1,20 +1,38 @@
 import { Injectable } from '@nestjs/common';
 import abiDecoder from 'abi-decoder';
+import { Net } from 'src/global.types';
+import { CollectionEntity } from './collection.entity';
 import { Mint } from './mint';
 
 enum Step {
   Listen = 'LISTEN',
 }
 
-@Injectable()
 export class ToggleMint extends Mint {
   owner;
+
+  private static _instanceMap = new Map();
+
+  static getInstance(net: Net, collection: CollectionEntity) {
+    const key = `${net}_${collection.contractAddress}`;
+    let instance = ToggleMint._instanceMap.get(key);
+    if(!instance){
+      instance = new ToggleMint(net);
+      ToggleMint._instanceMap.set(key, instance);
+    }
+    
+    return instance;
+  }
+
+  constructor(net) {
+    super(net);
+  }
 
   getPrice() {
     return this.price;
   }
 
-  async boot(collection) {
+  async boot(collection, walletList) {
     console.log('BOOT==============');
     const { mintConfig } = collection;
     const abi = JSON.parse(collection.abi);
@@ -50,7 +68,7 @@ export class ToggleMint extends Mint {
       method: writeFns[mintConfig.mintWrite.method].name,
       args: mintConfig.mintWrite.args,
     };
-    await this.warmup(abi, mintFn, collection.contractAddress);
+    await this.warmup(abi, mintFn, collection.contractAddress, walletList);
 
     this.web3.eth.subscribe('newBlockHeaders', async (block) => {
       this.price = await this.callMethod(

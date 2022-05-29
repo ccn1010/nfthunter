@@ -1,11 +1,15 @@
 import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { MintType } from './collection.types';
 
 @Entity('collection')
 export class CollectionEntity {
   @PrimaryColumn()
   contractAddress: string;
 
-  @Column()
+  @Column({
+    type: 'enum',
+    enum: MintType,
+  })
   mintType: string;
 
   @Column()
@@ -28,6 +32,9 @@ export class CollectionEntity {
 
   @Column({ nullable: true })
   ropstenContractAddress: string;
+
+  @Column({ nullable: true })
+  ganacheContractAddress: string;
 
   @Column({ type: 'bigint' })
   createdAt: number;

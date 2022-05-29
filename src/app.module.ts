@@ -6,6 +6,7 @@ import { CollectionModule } from './collection/collection.module';
 import { AppService } from './app.service';
 import { EventsModule } from './events/events.module';
 import { MonitorModule } from './monitor/monitor.module';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { MonitorModule } from './monitor/monitor.module';
     EventsModule,
     CollectionModule,
     MonitorModule,
+    WalletModule,
   ],
   controllers: [AppController],
   providers: [AppService],

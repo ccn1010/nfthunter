@@ -1,27 +1,34 @@
 import Web3 from 'web3';
-import { config } from './config';
 import { strict as assert } from 'assert';
-import { Injectable } from '@nestjs/common';
 import axios from 'axios';
-import { getContractContentList, parseSourceCodeObject } from './util';
 import solc from 'solc';
+import { getContractContentList, parseSourceCodeObject } from './util';
+import { config } from './config';
+import { Net } from 'src/global.types';
 
-@Injectable()
 export class Deployment {
   web3;
   config;
+  private static _instanceMap = new Map();
 
-  constructor() {
-    this.web3 = new Web3(
-      new Web3.providers.HttpProvider(
-        // 'http://ropsten.infura.io/ws/v3/e9680c370f374ef4bad3f5f654317e9a'
-        'HTTP://127.0.0.1:8545'
-      ),
-    );
-    this.config = config;
+  static getInstance(net): Deployment {
+    let instance = Deployment._instanceMap.get(net);
+    if(!instance){
+      instance = new Deployment(net);
+      Deployment._instanceMap.set(net, instance);
+    }
+    
+    return instance;
   }
 
-  async getContractSourceCodes(contractAddress: string) {
+  constructor(net) {
+    console.log('1111111', net)
+    const conf = config[net];
+    this.web3 = new Web3(conf.web3Provider);
+    this.config = conf;
+  }
+
+  static async getContractSourceCodes(contractAddress: string) {
     const result = await axios
       .get('https://api.etherscan.io/api', {
         params: {
@@ -38,7 +45,7 @@ export class Deployment {
     return result.data.result;
   }
 
-  getContracts(codeDatas) {
+  static getContracts(codeDatas) {
     const network = 'eth';
     const codeData = codeDatas[0];
     const sourceCode = parseSourceCodeObject(codeData.SourceCode, network);
@@ -62,9 +69,8 @@ export class Deployment {
   }
 
   async deployContract(codeDatas, contractPath, callback) {
-    console.log('contractPath', contractPath, Array.isArray(contractPath))
     const codeData = codeDatas[0];
-    let contractFile = this.getContracts(codeDatas);
+    let contractFile = Deployment.getContracts(codeDatas);
     contractPath.forEach((path) => {
       contractFile = contractFile[path];
     });
@@ -79,25 +85,11 @@ export class Deployment {
     const argTypeArray = argArray.map((item) => item.type);
     console.log('argArray', argTypeArray);
 
-    // const privKey = 'ac0fb8ad4fc8ce7469acd3cfe273f3f2f05ceae9a752fd201da5e4a63537df55'; // Genesis private key
-    // const address = '0xf1d03d17b5C888521DB8bd136d85d8752dce3f89';
-    // const web3 = new Web3(new Web3.providers.WebsocketProvider(
-    //     `http://127.0.0.1:8545`
-    // ));
-    // Deploy contract
-
     const deploy = async () => {
       const argsObj = this.web3.eth.abi.decodeParameters(
         argTypeArray,
         codeData.ConstructorArguments,
       );
-      const convert = (value, valueType) => {
-        if (valueType.indexOf('uint') !== -1) {
-          return parseInt(value);
-        }
-        return value;
-      };
-      console.log('args', argsObj);
 
       // console.log('Attempting to deploy from account:', address);
       // console.log('incrementerTx.encodeABI()', bytecode)
@@ -109,11 +101,6 @@ export class Deployment {
           console.log('argType', argType, index);
 
           const value = item[1];
-          // if(Array.isArray(value)){
-          //     value = value.map(item=>convert(item, argType));
-          // } else {
-          //     value = convert(value, argType);
-          // }
           return value;
         });
       const incrementerTx = incrementer.deploy({
@@ -125,14 +112,17 @@ export class Deployment {
         from: this.config.fromAddress,
         data: incrementerTx.encodeABI(),
       });
-      console.log('estimatedGas', estimatedGas);
 
+      const trx: any = {
+        from: this.config.fromAddress,
+        data: incrementerTx.encodeABI(),
+        gas: estimatedGas,
+      };
+      if(this.config.net !== Net.Ganache) {
+        trx.maxPriorityFeePerGas = this.web3.utils.toWei('2.5', 'gwei');
+      }
       const createTransaction = await this.web3.eth.accounts.signTransaction(
-        {
-          from: this.config.fromAddress,
-          data: incrementerTx.encodeABI(),
-          gas: estimatedGas,
-        },
+        trx,
         this.config.privateKey,
       );
       const createReceipt = await this.web3.eth
@@ -152,7 +142,4 @@ export class Deployment {
     deploy();
   }
 
-  setConfig(config) {
-    this.config = config;
-  }
 }

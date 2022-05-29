@@ -2,44 +2,36 @@ import Web3 from 'web3';
 import { config } from './config';
 import { strict as assert } from 'assert';
 import { Injectable } from '@nestjs/common';
+import { Net } from 'src/global.types';
 
-@Injectable()
 export class Mint {
   web3;
   mintFnData;
   estimatedGas;
   config;
-  mintConfig: any;
-  contract;
   floor;
   loss;
   earn;
   price;
+  walletList;
 
-  constructor() {
-    this.web3 = new Web3(
-      new Web3.providers.WebsocketProvider(
-        // `https://ropsten.infura.io/v3/e9680c370f374ef4bad3f5f654317e9a`
-        `wss://ropsten.infura.io/ws/v3/e9680c370f374ef4bad3f5f654317e9a`,
-      ),
-    );
-    this.config = config;
+  constructor(net: Net) {
+    const conf = config[net];
+    this.web3 = new Web3(conf.web3Provider);
+    this.config = conf;
   }
 
-  setConfig(config) {
-    this.config = config;
-  }
-
-  // 每次产生新区块的时候执行 warmup
-  async warmup(abi, mintFn, contractAddress) {
+  // TODO 每次产生新区块的时候执行 warmup
+  async warmup(abi, mintFn, contractAddress, walletList) {
     const contract = new this.web3.eth.Contract(abi, contractAddress);
-    this.contract = contract;
     const extraData = await contract.methods[mintFn.method](...mintFn.args);
     this.mintFnData = extraData.encodeABI();
     this.estimatedGas = 1000000;
+    this.walletList = walletList;
   }
 
   callMethod(abi, contractAddress, method, args = []) {
+    // TODO contract 写到 this 上
     const contract = new this.web3.eth.Contract(
       JSON.parse(abi),
       contractAddress,
@@ -56,18 +48,21 @@ export class Mint {
     console.log('SEND METHOD', method, args);
     const extraData = await contract.methods[method](...args);
     const data = extraData.encodeABI();
-    const nonce = await this.web3.eth.getTransactionCount(config.fromAddress);
+    const nonce = await this.web3.eth.getTransactionCount(this.config.fromAddress);
     console.log('nonce', nonce);
     const transaction: any = {
-      maxPriorityFeePerGas: this.web3.utils.toWei('2.5', 'gwei'),
       // nonce: nonce + 1,
       gas: 1000000,
       to: contractAddress,
       data: this.web3.utils.toHex(data),
     };
+    if(this.config.net !== Net.Ganache) {
+      transaction.maxPriorityFeePerGas = this.web3.utils.toWei('2.5', 'gwei');
+    }
+    console.log('this.config.privateKey', this.config.privateKey)
     const signedTx = await this.web3.eth.accounts.signTransaction(
       transaction,
-      config.privateKey,
+      this.config.privateKey,
     );
     this.web3.eth
       .sendSignedTransaction(signedTx.rawTransaction)
@@ -87,7 +82,7 @@ export class Mint {
     // const cost = this.floor*(1 - this.loss - this.earn);
     // const bid = this.config.price + maxPriorityFeePerGas;
     // assert.ok((cost - bid) > 0, '没有盈利空间');
-    this.config.walletList.forEach(async (wallet) => {
+    this.walletList.forEach(async (wallet) => {
       const transaction: any = {
         gas: this.estimatedGas,
         to: contractAddress,

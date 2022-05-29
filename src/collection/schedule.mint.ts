@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import abiDecoder from 'abi-decoder';
+import { Net } from 'src/global.types';
+import { CollectionEntity } from './collection.entity';
 import { Mint } from './mint';
 
-@Injectable()
 export class ScheduleMint extends Mint {
   mintQueue = [];
   saleAt = 0;
@@ -10,7 +11,24 @@ export class ScheduleMint extends Mint {
   isListening = false;
   isMinted = false;
 
-  async boot(collection) {
+  private static _instanceMap = new Map();
+
+  static getInstance(net: Net, collection: CollectionEntity) {
+    const key = `${net}_${collection.contractAddress}`;
+    let instance = ScheduleMint._instanceMap.get(key);
+    if(!instance){
+      instance = new ScheduleMint(net);
+      ScheduleMint._instanceMap.set(key, instance);
+    }
+    
+    return instance;
+  }
+
+  constructor(net) {
+    super(net);
+  }
+
+  async boot(collection, walletList) {
     console.log('BOOT==============');
     const { mintConfig } = collection;
     const abi = JSON.parse(collection.abi);
@@ -59,11 +77,11 @@ export class ScheduleMint extends Mint {
       if (!this.saleAt || this.isListening) {
         return;
       }
-      this.listen(collection, abi, readFns, writeFns, mintConfig);
+      this.listen(collection, abi, readFns, writeFns, mintConfig, walletList);
     }, 1000);
   }
 
-  async listen(collection, abi, readFns, writeFns, mintConfig) {
+  async listen(collection, abi, readFns, writeFns, mintConfig, walletList) {
     // const beginTime = this.saleAt - 10000;
     const beginTime = this.saleAt - 10;
     console.log(
@@ -83,7 +101,7 @@ export class ScheduleMint extends Mint {
       method: writeFns[mintConfig.mintWrite.method].name,
       args: mintConfig.mintWrite.args,
     };
-    await this.warmup(abi, mintFn, collection.contractAddress);
+    await this.warmup(abi, mintFn, collection.contractAddress, walletList);
 
     const timer = setInterval(() => {
       if (this.isMinted) {
