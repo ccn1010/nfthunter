@@ -19,16 +19,15 @@ const abiDecoder = require('abi-decoder');
 export class CollectionController {
   constructor(
     private readonly collectionService: CollectionService,
-    private readonly walletService: WalletService,
     // TODO ToggleMint 和 ScheduleMint 是用的使用实例化出来的，而不是在constructor里，扔出去
     private readonly eventsGateway: EventsGateway,
   ) {}
 
-  getMint(net: Net, collectiion: CollectionEntity): ScheduleMint | ToggleMint {
-    if(collectiion.mintType === MintType.Toggle) {
-      return ToggleMint.getInstance(net, collectiion);
-    } else if(collectiion.mintType === MintType.Schedule){
-      return ScheduleMint.getInstance(net, collectiion);
+  getMint(net: Net, collection: CollectionEntity): ScheduleMint | ToggleMint {
+    if(collection.mintType === MintType.Toggle) {
+      return ToggleMint.getInstance(net, collection);
+    } else if(collection.mintType === MintType.Schedule){
+      return ScheduleMint.getInstance(net, collection);
     } else {
       throw new Error('Unknown mintType');
     }
@@ -62,6 +61,15 @@ export class CollectionController {
     return await this.collectionService.findAll(query);
   }
 
+  @Get('status')
+  async status(@Query() query) {
+    const { collection } = await this.collectionService.findOne({
+      contractAddress: query.address,
+    });
+    const mintInstance = this.getMint(query.net, collection);
+    return mintInstance;
+  }
+
   @Get(':address/call')
   async call(
     @Param('address') address,
@@ -72,11 +80,9 @@ export class CollectionController {
     const { collection } = await this.collectionService.findOne({
       contractAddress: address,
     });
-    const conf = config[net];
 
     return this.getMint(net, collection).callMethod(
       collection.abi,
-      collection[conf.contractAddressColumn],
       method,
       args,
     );
@@ -92,12 +98,9 @@ export class CollectionController {
     const { collection } = await this.collectionService.findOne({
       contractAddress: address,
     });
-    const conf = config[net];
-    console.log('collection[conf.contractAddressColumn]', collection[conf.contractAddressColumn])
 
     return this.getMint(net, collection).sendMethod(
       collection.abi,
-      collection[conf.contractAddressColumn],
       method,
       args,
     );
@@ -125,34 +128,15 @@ export class CollectionController {
     return list;
   }
 
-  @Post(':address/boot')
+  @Post('boot')
   async boot(@Body() body) {
     const net = body.net;
     const { collection } = await this.collectionService.findOne({
       contractAddress: body.address,
     });
-    const walletList = await this.walletService.findAll({
-      net: net,
-    });
 
-    this.getMint(net, collection).boot(collection, walletList.wallets);
+    this.getMint(net, collection).boot(collection);
   }
-
-  // @Put(':address/toggleTest')
-  // async toggleTest(@Param('address') address) {
-  //   const { collection } = await this.collectionService.findOne({
-  //     contractAddress: address,
-  //   });
-  //   this.toggleMint.boot(collection);
-  // }
-
-  // @Put(':address/scheduleTest')
-  // async scheduleTest(@Param('address') address) {
-  //   const { collection } = await this.collectionService.findOne({
-  //     contractAddress: address,
-  //   });
-  //   this.scheduleMint.boot(collection);
-  // }
 
   @Put(':address')
   async put(@Param('address') address, @Body() body) {
@@ -161,24 +145,24 @@ export class CollectionController {
 
   @Post()
   async create(@Body() body) {
-    const sourceCodes = await Deployment.getContractSourceCodes(body.address);
-    if (sourceCodes === 'Invalid API Key') {
+    const codeDatas = await Deployment.getContractSourceCodes(body.address);
+    if (codeDatas === 'Invalid API Key') {
       console.error('Invalid API Key');
       return;
     }
 
-    if (sourceCodes.length > 1) {
+    if (codeDatas.length > 1) {
       console.error('Too many SourceCodes======================');
       return;
     }
 
-    const sourceCode = sourceCodes[0];
-    if (sourceCode.SourceCode === '') {
+    const codeData = codeDatas[0];
+    if (codeData.SourceCode === '') {
       console.error('Invalid Address');
       return;
     }
 
-    const contracts = await Deployment.getContracts(sourceCodes);
+    const contracts = await Deployment.getContracts(codeDatas);
     const contractPathList = Object.entries(contracts).map(([key, value])=>{
           return {
             value: key,
@@ -193,12 +177,12 @@ export class CollectionController {
     });
     const data = {
       contractAddress: body.address,
-      contractName: sourceCode.ContractName,
+      contractName: codeData.ContractName,
       mintType: body.mintType,
-      compilerVersion: sourceCode.CompilerVersion,
-      constructorArguments: sourceCode.ConstructorArguments,
+      compilerVersion: codeData.CompilerVersion,
+      constructorArguments: codeData.ConstructorArguments,
       contractPathList: contractPathList,
-      abi: sourceCode.ABI,
+      abi: codeData.ABI,
     };
 
     const collection = await this.collectionService.create(data);

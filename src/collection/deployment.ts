@@ -2,7 +2,7 @@ import Web3 from 'web3';
 import { strict as assert } from 'assert';
 import axios from 'axios';
 import solc from 'solc';
-import { getContractContentList, parseSourceCodeObject } from './util';
+import { getContractContentList, isSingleFileContract, parseSourceCodeObject } from './util';
 import { config } from './config';
 import { Net } from 'src/global.types';
 
@@ -48,7 +48,22 @@ export class Deployment {
   static getContracts(codeDatas) {
     const network = 'eth';
     const codeData = codeDatas[0];
-    const sourceCode = parseSourceCodeObject(codeData.SourceCode, network);
+    const isSingle = isSingleFileContract(codeData.SourceCode);
+    let sourceCode;
+    if(isSingle) {
+      sourceCode = {
+        language: 'Solidity',
+        settings: {
+          outputSelection: {
+             '*': {
+                '*': ['*'],
+             },
+          },
+       },
+      };
+    }else{
+      sourceCode = parseSourceCodeObject(codeData.SourceCode, network);
+    }
     const contractContents = getContractContentList(codeDatas, network);
 
     const sources = {};
@@ -83,7 +98,6 @@ export class Deployment {
     });
     const argArray = contractConstructor.inputs;
     const argTypeArray = argArray.map((item) => item.type);
-    console.log('argArray', argTypeArray);
 
     const deploy = async () => {
       const argsObj = this.web3.eth.abi.decodeParameters(
@@ -91,35 +105,31 @@ export class Deployment {
         codeData.ConstructorArguments,
       );
 
-      // console.log('Attempting to deploy from account:', address);
-      // console.log('incrementerTx.encodeABI()', bytecode)
-      const incrementer = new this.web3.eth.Contract(abi);
+      const nftContract = new this.web3.eth.Contract(abi);
       const cargs = Object.entries(argsObj)
         .filter((item) => item[0] !== '__length__')
         .map((item, index) => {
-          const argType = argTypeArray[index];
-          console.log('argType', argType, index);
-
           const value = item[1];
           return value;
         });
-      const incrementerTx = incrementer.deploy({
+      console.log('CONTRACT CONSTRUCTOR', contractConstructor, cargs);
+      const incrementerTx = nftContract.deploy({
         data: bytecode,
         arguments: cargs,
       });
 
       const estimatedGas = await this.web3.eth.estimateGas({
-        from: this.config.fromAddress,
+        from: this.config.address,
         data: incrementerTx.encodeABI(),
       });
 
       const trx: any = {
-        from: this.config.fromAddress,
+        from: this.config.address,
         data: incrementerTx.encodeABI(),
         gas: estimatedGas,
       };
       if(this.config.net !== Net.Ganache) {
-        trx.maxPriorityFeePerGas = this.web3.utils.toWei('2.5', 'gwei');
+        trx.maxPriorityFeePerGas = this.web3.utils.toWei('5', 'gwei');
       }
       const createTransaction = await this.web3.eth.accounts.signTransaction(
         trx,

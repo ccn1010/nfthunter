@@ -3,6 +3,7 @@ import abiDecoder from 'abi-decoder';
 import { Net } from 'src/global.types';
 import { CollectionEntity } from './collection.entity';
 import { Mint } from './mint';
+import { config } from './config';
 
 enum Step {
   Listen = 'LISTEN',
@@ -10,32 +11,36 @@ enum Step {
 
 export class ToggleMint extends Mint {
   owner;
+  contractAddress;
 
   private static _instanceMap = new Map();
 
   static getInstance(net: Net, collection: CollectionEntity) {
-    const key = `${net}_${collection.contractAddress}`;
+    const conf = config[net];
+    const contractAddress = collection[conf.contractAddressColumn];
+    const key = `${net}_${contractAddress}`;
     let instance = ToggleMint._instanceMap.get(key);
     if(!instance){
-      instance = new ToggleMint(net);
+      instance = new ToggleMint(net, contractAddress);
       ToggleMint._instanceMap.set(key, instance);
     }
     
     return instance;
   }
 
-  constructor(net) {
-    super(net);
+  constructor(net, contractAddress) {
+    super(net, contractAddress);
   }
 
   getPrice() {
     return this.price;
   }
 
-  async boot(collection, walletList) {
+  async boot(collection) {
     console.log('BOOT==============');
     const { mintConfig } = collection;
     const abi = JSON.parse(collection.abi);
+    const mintNum = parseInt(mintConfig.mintWrite.args[0]);
     const readFns = [];
     const writeFns = [];
     abi.forEach((item) => {
@@ -52,14 +57,14 @@ export class ToggleMint extends Mint {
 
     this.price = await this.callMethod(
       collection.abi,
-      collection.contractAddress,
       readFns[mintConfig.priceRead.method].name,
       mintConfig.priceRead.args,
     );
-    console.log('this.price', this.price);
+
+    console.log('PRICE', this.price);
+
     this.owner = await this.callMethod(
       collection.abi,
-      collection.contractAddress,
       readFns[mintConfig.ownerRead.method].name,
       mintConfig.ownerRead.args,
     );
@@ -68,18 +73,16 @@ export class ToggleMint extends Mint {
       method: writeFns[mintConfig.mintWrite.method].name,
       args: mintConfig.mintWrite.args,
     };
-    await this.warmup(abi, mintFn, collection.contractAddress, walletList);
+    await this.warmup(abi, mintFn);
 
     this.web3.eth.subscribe('newBlockHeaders', async (block) => {
       this.price = await this.callMethod(
         collection.abi,
-        collection.contractAddress,
         readFns[mintConfig.priceRead.method].name,
         mintConfig.priceRead.args,
       );
       this.owner = await this.callMethod(
         collection.abi,
-        collection.contractAddress,
         readFns[mintConfig.ownerRead.method].name,
         mintConfig.ownerRead.args,
       );
@@ -87,16 +90,16 @@ export class ToggleMint extends Mint {
 
     const isSaleActive = await this.callMethod(
       collection.abi,
-      collection.contractAddress,
       readFns[mintConfig.saleActiveRead.method].name,
       mintConfig.saleActiveRead.args,
     );
 
     if (isSaleActive) {
+      console.log('ABORT! 合约已经是发售状态，终止监听');
       return;
     }
 
-    console.log('TOGGLE TEST START==============');
+    console.log('TOGGLE LISTEN START==============', this.net, this.contractAddress);
     abiDecoder.addABI(abi);
     this.web3.eth
       .subscribe('pendingTransactions')
@@ -120,7 +123,6 @@ export class ToggleMint extends Mint {
         if (!decodedData) {
           return;
         }
-        console.log('TRX', transaction, decodedData, auther);
 
         if (
           decodedData.name !== writeFns[mintConfig.saleActiveWrite.method].name
@@ -135,7 +137,7 @@ export class ToggleMint extends Mint {
         console.log('FIND TOGGLE');
 
         this.send(
-          collection.contractAddress,
+          mintNum,
           transaction.maxPriorityFeePerGas,
           transaction.maxFeePerGas,
         );

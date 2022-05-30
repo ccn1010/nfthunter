@@ -9,5 +9,11 @@ export const config = {
     ),
     contractAddressColumn: 'ganacheContractAddress',
     privateKey: '585a276b1555a15fbc8eabcf69835f07e70736c8c4b52ba5f46da2bdb35d1ee6',
-    fromAddress: '0x747B97C5802583f739B0FCDcad1A467299b890d4'.toLocaleLowerCase(),
+    address: '0x747B97C5802583f739B0FCDcad1A467299b890d4'.toLocaleLowerCase(),
+    walletList: [
+        {
+            privateKey: '585a276b1555a15fbc8eabcf69835f07e70736c8c4b52ba5f46da2bdb35d1ee6',
+            address: '0x747B97C5802583f739B0FCDcad1A467299b890d4',
+        },
+    ],
 };

@@ -8,14 +8,12 @@ import { CollectionEntity } from './collection.entity';
 import { CollectionService } from './collection.service';
 import { EventsModule } from 'src/events/events.module';
 import { MonitorModule } from 'src/monitor/monitor.module';
-import { WalletModule } from 'src/wallet/wallet.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([CollectionEntity]),
     EventsModule,
     MonitorModule,
-    WalletModule,
   ],
   providers: [CollectionService],
   controllers: [CollectionController],

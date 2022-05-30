@@ -3,6 +3,7 @@ import abiDecoder from 'abi-decoder';
 import { Net } from 'src/global.types';
 import { CollectionEntity } from './collection.entity';
 import { Mint } from './mint';
+import { config } from './config';
 
 export class ScheduleMint extends Mint {
   mintQueue = [];
@@ -14,21 +15,23 @@ export class ScheduleMint extends Mint {
   private static _instanceMap = new Map();
 
   static getInstance(net: Net, collection: CollectionEntity) {
-    const key = `${net}_${collection.contractAddress}`;
+    const conf = config[net];
+    const contractAddress = collection[conf.contractAddressColumn];
+    const key = `${net}_${contractAddress}`;
     let instance = ScheduleMint._instanceMap.get(key);
     if(!instance){
-      instance = new ScheduleMint(net);
+      instance = new ScheduleMint(net, contractAddress);
       ScheduleMint._instanceMap.set(key, instance);
     }
     
     return instance;
   }
 
-  constructor(net) {
-    super(net);
+  constructor(net, contractAddress) {
+    super(net, contractAddress);
   }
 
-  async boot(collection, walletList) {
+  async boot(collection) {
     console.log('BOOT==============');
     const { mintConfig } = collection;
     const abi = JSON.parse(collection.abi);
@@ -60,14 +63,12 @@ export class ScheduleMint extends Mint {
         this.baseFee = await this.web3.eth.getGasPrice();
         this.saleAt = await this.callMethod(
           collection.abi,
-          collection.contractAddress,
           readFns[mintConfig.saleAtRead.method].name,
           mintConfig.saleAtRead.args,
         );
 
         this.price = await this.callMethod(
           collection.abi,
-          collection.contractAddress,
           readFns[mintConfig.priceRead.method].name,
           mintConfig.priceRead.args,
         );
@@ -77,11 +78,12 @@ export class ScheduleMint extends Mint {
       if (!this.saleAt || this.isListening) {
         return;
       }
-      this.listen(collection, abi, readFns, writeFns, mintConfig, walletList);
+      this.listen(collection, abi, readFns, writeFns, mintConfig);
     }, 1000);
   }
 
-  async listen(collection, abi, readFns, writeFns, mintConfig, walletList) {
+  async listen(collection, abi, readFns, writeFns, mintConfig) {
+    const mintNum = parseInt(mintConfig.mintWrite.args[0]);
     // const beginTime = this.saleAt - 10000;
     const beginTime = this.saleAt - 10;
     console.log(
@@ -101,7 +103,7 @@ export class ScheduleMint extends Mint {
       method: writeFns[mintConfig.mintWrite.method].name,
       args: mintConfig.mintWrite.args,
     };
-    await this.warmup(abi, mintFn, collection.contractAddress, walletList);
+    await this.warmup(abi, mintFn);
 
     const timer = setInterval(() => {
       if (this.isMinted) {
@@ -137,7 +139,7 @@ export class ScheduleMint extends Mint {
 
         console.log('开始mint', item.maxPriorityFeePerGas, item.maxFeePerGas);
         this.send(
-          collection.contractAddress,
+          mintNum,
           item.maxPriorityFeePerGas && item.maxPriorityFeePerGas + 1,
           item.maxFeePerGas && item.maxFeePerGas + 1,
         );

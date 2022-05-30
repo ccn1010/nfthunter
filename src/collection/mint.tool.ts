@@ -41,7 +41,7 @@ export class MintTool {
     console.log('SEND METHOD', method, args);
     const extraData = await contract.methods[method](...args);
     const data = extraData.encodeABI();
-    const nonce = await this.web3.eth.getTransactionCount(this.config.fromAddress);
+    const nonce = await this.web3.eth.getTransactionCount(this.config.address);
     console.log('nonce', nonce);
     const transaction: any = {
       maxPriorityFeePerGas: this.web3.utils.toWei('2.5', 'gwei'),
@@ -63,7 +63,7 @@ export class MintTool {
         console.log('SEND METHOD DONE', args);
       });
     // TODO 使用alchemy的api
-    // return contract.methods[method](...args).send({from: this.config.fromAddress}, (error)=>{
+    // return contract.methods[method](...args).send({from: this.config.address}, (error)=>{
     //     console.log('eeeee', error)
     // });
   }

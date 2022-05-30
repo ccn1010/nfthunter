@@ -1,4 +1,4 @@
-const isSingleFileContract = (sourceCode: string) => {
+export const isSingleFileContract = (sourceCode: string) => {
   return (
     sourceCode.indexOf('pragma') === 0 ||
     sourceCode.indexOf('//') === 0 ||
