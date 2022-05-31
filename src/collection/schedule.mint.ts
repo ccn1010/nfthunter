@@ -54,11 +54,6 @@ export class ScheduleMint extends Mint {
       .subscribe('newBlockHeaders')
       .on('data', async (blockHeader) => {
         this.mintQueue = [];
-        // console.log('NEW BLOCK ============', new Date(parseInt(this.saleAt)));
-        const beginTime = this.saleAt - 60;
-        if (Date.now() / 1000 < beginTime) {
-          return;
-        }
 
         this.baseFee = await this.web3.eth.getGasPrice();
         this.saleAt = await this.callMethod(

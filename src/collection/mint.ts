@@ -64,7 +64,7 @@ export class Mint {
       data: this.web3.utils.toHex(data),
     };
     if(this.config.net !== Net.Ganache) {
-      transaction.maxPriorityFeePerGas = this.web3.utils.toWei('5', 'gwei');
+      transaction.maxPriorityFeePerGas = this.web3.utils.toWei('10', 'gwei');
     }
     const signedTx = await this.web3.eth.accounts.signTransaction(
       transaction,
