@@ -11,8 +11,8 @@ export const config = {
     address: '0x0e089763d463a17E0C907897A32F9e9Eb6Fa514a'.toLocaleLowerCase(),
     walletList: [
         {
-            privateKey: '',
-            address: '',
+            privateKey: '264d9d3680533b09336a874a0a3482ac23f1e3cc646d982899d77d435b8868c0',
+            address: '0x6122b159162112f806720F01add6E5fCB9316039',
         },
     ],
 };
