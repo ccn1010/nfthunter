@@ -129,7 +129,7 @@ export class Deployment {
         gas: estimatedGas,
       };
       if(this.config.net !== Net.Ganache) {
-        trx.maxPriorityFeePerGas = this.web3.utils.toWei('12', 'gwei');
+        trx.maxPriorityFeePerGas = this.web3.utils.toWei('32', 'gwei');
       }
       const createTransaction = await this.web3.eth.accounts.signTransaction(
         trx,

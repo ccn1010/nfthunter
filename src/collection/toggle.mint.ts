@@ -40,7 +40,7 @@ export class ToggleMint extends Mint {
 
   async boot(collection) {
     console.log('BOOT==============');
-    const { mintConfig } = collection;
+    const { mintConfig, profile } = collection;
     const abi = JSON.parse(collection.abi);
     const mintNum = parseInt(mintConfig.mintWrite.args[0]);
     const readFns = [];
@@ -57,7 +57,7 @@ export class ToggleMint extends Mint {
       }
     });
 
-    this.price = await this.callMethod(
+    this.price = (profile && 'price' in profile) ? profile.price : await this.callMethod(
       collection.abi,
       readFns[mintConfig.priceRead.method].name,
       mintConfig.priceRead.args,
@@ -65,7 +65,7 @@ export class ToggleMint extends Mint {
 
     console.log('PRICE', this.price);
 
-    this.owner = await this.callMethod(
+    this.owner = (profile && 'owner' in profile) ? profile.owner : await this.callMethod(
       collection.abi,
       readFns[mintConfig.ownerRead.method].name,
       mintConfig.ownerRead.args,
@@ -78,12 +78,12 @@ export class ToggleMint extends Mint {
     await this.warmup(abi, mintFn);
 
     this.web3.eth.subscribe('newBlockHeaders', async (block) => {
-      this.price = await this.callMethod(
+      this.price = (profile && 'price' in profile) ? profile.price : await this.callMethod(
         collection.abi,
         readFns[mintConfig.priceRead.method].name,
         mintConfig.priceRead.args,
       );
-      this.owner = await this.callMethod(
+      this.owner = (profile && 'owner' in profile) ? profile.owner : await this.callMethod(
         collection.abi,
         readFns[mintConfig.ownerRead.method].name,
         mintConfig.ownerRead.args,

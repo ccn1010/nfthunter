@@ -8,6 +8,7 @@ export class CreateCollectionDto {
   readonly constructorArguments: string;
   readonly abi: string;
   readonly contractPathList: {[key: string]: any}[];
+  readonly profile: { [key: string]: any };
   readonly mintConfig: { [key: string]: any };
   readonly ropstenContractAddress: string;
   readonly ganacheContractAddress: string;

@@ -52,11 +52,15 @@ export const getContractContentList = (sourceCodes: any, network: string) => {
 export const isEquals = (params: any[], values) => {
   for(let i=0; i<params.length; i++) {
     const param = params[i];
-    const value = values[i];
+    let value = values[i];
     let val = param.value;
     // TODO 测试其他类型，比如 uint
     if(param.type === 'bool'){
-      val = Boolean(val);
+      value = !!value;
+      val = !!val;
+    }else if(param.type.startsWith('uint') || param.type.startsWith('int')){
+      value = parseInt(value, 10);
+      val = parseInt(val, 10);
     }
 
     const ret = val === value;

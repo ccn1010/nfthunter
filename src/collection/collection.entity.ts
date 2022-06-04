@@ -28,6 +28,9 @@ export class CollectionEntity {
   contractPathList: {[key: string]: any}[];
 
   @Column('json', { nullable: true })
+  profile: {[key: string]: any};
+
+  @Column('json', { nullable: true })
   mintConfig: {[key: string]: any};
 
   @Column({ nullable: true })
