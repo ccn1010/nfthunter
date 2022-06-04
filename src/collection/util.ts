@@ -48,3 +48,22 @@ export const getContractContentList = (sourceCodes: any, network: string) => {
   }
   return contractContent;
 };
+
+export const isEquals = (params: any[], values) => {
+  for(let i=0; i<params.length; i++) {
+    const param = params[i];
+    const value = values[i];
+    let val = param.value;
+    // TODO 测试其他类型，比如 uint
+    if(param.type === 'bool'){
+      val = Boolean(val);
+    }
+
+    const ret = val === value;
+    if(!ret) {
+      return false;
+    }
+  }
+
+  return true;
+}

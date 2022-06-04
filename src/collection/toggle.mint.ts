@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import abiDecoder from 'abi-decoder';
+import _ from 'lodash';
 import { Net } from 'src/global.types';
 import { CollectionEntity } from './collection.entity';
 import { Mint } from './mint';
 import { config } from './config';
+import { isEquals } from './util';
 
 enum Step {
   Listen = 'LISTEN',
@@ -88,16 +90,16 @@ export class ToggleMint extends Mint {
       );
     });
 
-    const isSaleActive = await this.callMethod(
-      collection.abi,
-      readFns[mintConfig.saleActiveRead.method].name,
-      mintConfig.saleActiveRead.args,
-    );
+    // const isSaleActive = await this.callMethod(
+    //   collection.abi,
+    //   readFns[mintConfig.saleActiveRead.method].name,
+    //   mintConfig.saleActiveRead.args,
+    // );
 
-    if (isSaleActive) {
-      console.log('ABORT! 合约已经是发售状态，终止监听');
-      return;
-    }
+    // if (isSaleActive) {
+    //   console.log('ABORT! 合约已经是发售状态，终止监听');
+    //   return;
+    // }
 
     console.log('TOGGLE LISTEN START==============', this.net, this.contractAddress);
     abiDecoder.addABI(abi);
@@ -127,6 +129,10 @@ export class ToggleMint extends Mint {
         if (
           decodedData.name !== writeFns[mintConfig.saleActiveWrite.method].name
         ) {
+          return;
+        }
+
+        if (!isEquals(decodedData.params, mintConfig.saleActiveWrite.args)) {
           return;
         }
 
