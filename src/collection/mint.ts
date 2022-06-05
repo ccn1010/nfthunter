@@ -29,7 +29,7 @@ export class Mint {
   async warmup(abi, mintFn) {
     const contract = new this.web3.eth.Contract(abi, this.contractAddress);
     const extraData = await contract.methods[mintFn.method](...mintFn.args);
-    this.mintFnData = extraData.encodeABI();
+    this.mintFnData = this.web3.utils.toHex(extraData.encodeABI());
     this.estimatedGas = 1000000;
     this.walletList = this.config.walletList;
   }
@@ -90,11 +90,16 @@ export class Mint {
     // const bid = this.config.price + maxPriorityFeePerGas;
     // assert.ok((cost - bid) > 0, '没有盈利空间');
     this.walletList.forEach(async (wallet) => {
+      if(wallet.isMinting) {
+        console.log('WAITINT FOR CURRENT MINT DONE');
+        return;
+      }
+
       const transaction: any = {
         gas: this.estimatedGas,
         to: this.contractAddress,
         value: String(this.price * mintNum),
-        data: this.web3.utils.toHex(this.mintFnData),
+        data: this.mintFnData,
       };
 
       if (maxPriorityFeePerGas) {
@@ -110,13 +115,16 @@ export class Mint {
       );
 
       console.log('MINT', wallet, transaction);
+      wallet.isMinting = true;
       return this.web3.eth
         .sendSignedTransaction(signedTx.rawTransaction)
         .on('error', (error) => {
           console.log('MINT ERROR', error);
+          wallet.isMinting = false;
         })
         .on('receipt', (...args) => {
           console.log('MINT CONFIRMED', args);
+          wallet.isMinting = false;
         });
     });
   }

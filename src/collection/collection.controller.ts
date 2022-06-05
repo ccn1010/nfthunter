@@ -4,6 +4,7 @@ import { CollectionService } from './collection.service';
 import { CreateCollectionDto } from './dto';
 import { CollectionsRO, CollectionRO } from './collection.interface';
 import { ToggleMint } from './toggle.mint';
+import { FreeMint } from './free.mint';
 import { EventsGateway } from 'src/events/events.gateway';
 import { ScheduleMint } from './schedule.mint';
 import { Deployment } from './deployment';
@@ -41,6 +42,26 @@ export class CollectionController {
     // console.log('blockHeader', blockHeader)
     console.log('xxxxxx decodedData:', decodedData);
     this.eventsGateway.send('backtest', decodedData);
+  }
+
+  @Get('free')
+  async free(
+  ): Promise<Array<any>> {
+    const list = Object.values(Net).map(net=>{
+      return FreeMint.getInstance(net).toJSON();
+    });
+
+    return list;
+  }
+
+  @Put('free')
+  async toggleFree(@Body() item) {
+    const fm = FreeMint.getInstance(item.net);
+    if(item.toggle){
+      await fm.boot();
+    }else{
+      await fm.shutdown();
+    }
   }
 
   @Get('mint')

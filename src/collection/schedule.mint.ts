@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import abiDecoder from 'abi-decoder';
 import { Net } from 'src/global.types';
 import { CollectionEntity } from './collection.entity';
@@ -32,7 +31,7 @@ export class ScheduleMint extends Mint {
   }
 
   async boot(collection) {
-    console.log('BOOT==============');
+    console.log('SCHEDULE MINT BOOT==============');
     const { mintConfig } = collection;
     const abi = JSON.parse(collection.abi);
     const readFns = [];

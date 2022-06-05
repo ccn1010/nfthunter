@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import abiDecoder from 'abi-decoder';
 import _ from 'lodash';
 import { Net } from 'src/global.types';
@@ -39,7 +38,7 @@ export class ToggleMint extends Mint {
   }
 
   async boot(collection) {
-    console.log('BOOT==============');
+    console.log('TOGGLE MINT BOOT==============');
     const { mintConfig, profile } = collection;
     const abi = JSON.parse(collection.abi);
     const mintNum = parseInt(mintConfig.mintWrite.args[0]);
@@ -129,14 +128,17 @@ export class ToggleMint extends Mint {
         if (
           decodedData.name !== writeFns[mintConfig.saleActiveWrite.method].name
         ) {
+          console.log('sale method 不同', decodedData.name, writeFns[mintConfig.saleActiveWrite.method].name);
           return;
         }
 
         if (!isEquals(decodedData.params, mintConfig.saleActiveWrite.args)) {
+          console.log('sale params 不同', decodedData.params, mintConfig.saleActiveWrite.args);
           return;
         }
 
         if (auther.toLowerCase() !== this.owner.toLowerCase()) {
+          console.log('owner 不同', auther.toLowerCase(), this.owner.toLowerCase());
           return;
         }
 
