@@ -73,11 +73,14 @@ export class Mint {
     );
     this.web3.eth
       .sendSignedTransaction(signedTx.rawTransaction)
-      .on('error', (error) => {
+      .once('error', (error) => {
         console.log('SEND METHOD ERROR', error);
       })
-      .on('receipt', (...args) => {
+      .once('receipt', (...args) => {
         console.log('SEND METHOD CONFIRMED', method, args);
+      })
+      .catch(err=>{
+        console.log('SEND METHOD FAILED', err);
       });
     // TODO 使用alchemy的api
     // return contract.methods[method](...args).send({from: this.config.address}, (error)=>{
@@ -118,12 +121,15 @@ export class Mint {
       wallet.isMinting = true;
       return this.web3.eth
         .sendSignedTransaction(signedTx.rawTransaction)
-        .on('error', (error) => {
+        .once('error', (error) => {
           console.log('MINT ERROR', error);
           wallet.isMinting = false;
         })
-        .on('receipt', (...args) => {
+        .once('receipt', (...args) => {
           console.log('MINT CONFIRMED', args);
+          wallet.isMinting = false;
+        }).catch(err=>{
+          console.log('MINT FAILED', err);
           wallet.isMinting = false;
         });
     });

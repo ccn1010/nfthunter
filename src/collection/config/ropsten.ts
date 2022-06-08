@@ -15,4 +15,5 @@ export const config = {
             address: '0x8751cB6Eff64bAc07f772Bc902b07264f21b9B84',
         },
     ],
+    mintedNum: 2,
 };
