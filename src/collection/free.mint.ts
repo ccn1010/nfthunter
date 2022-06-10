@@ -127,9 +127,11 @@ export class FreeMint extends Mint {
         if(value.length <= this.config.mintedNum){
           return;
         }
+
+        value.sort((a, b)=> {
+          return a.maxPriorityFeePerGas > b.maxPriorityFeePerGas ? 1 : -1;
+        });
         
-        // console.log('value', value.length)
-        // // TODO 取 gas 费最低的
         const first = value[0];
         const isNFT = await this.verifyIsNFT(first.to);
         // console.log('isNFT', isNFT, this.config.mintedNum, value.length)
