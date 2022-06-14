@@ -8,12 +8,16 @@ import { CollectionEntity } from './collection.entity';
 import { CollectionService } from './collection.service';
 import { EventsModule } from 'src/events/events.module';
 import { MonitorModule } from 'src/monitor/monitor.module';
+import { ConfigureModule } from 'src/configure/configure.module';
+import { ContractModule } from 'src/contract/contract.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([CollectionEntity]),
     EventsModule,
     MonitorModule,
+    ConfigureModule,
+    ContractModule,
   ],
   providers: [CollectionService],
   controllers: [CollectionController],

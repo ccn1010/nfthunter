@@ -4,6 +4,7 @@ import { CollectionService } from './collection.service';
 import { CreateCollectionDto } from './dto';
 import { CollectionsRO, CollectionRO } from './collection.interface';
 import { ToggleMint } from './toggle.mint';
+import { SniffMint } from '../collection/sniff.mint';
 import { FreeMint } from './free.mint';
 import { EventsGateway } from 'src/events/events.gateway';
 import { ScheduleMint } from './schedule.mint';
@@ -13,13 +14,20 @@ import { MintType } from './collection.types';
 import { Net } from 'src/global.types';
 import { CollectionEntity } from './collection.entity';
 import { config } from './config';
+import { ConfigureService } from 'src/configure/configure.service';
+import { ContractService } from 'src/contract/contract.service';
+import { Status } from 'src/contract/contract.types';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const abiDecoder = require('abi-decoder');
+
+const SNIFF = 'SNIFF';
 
 @Controller('collections')
 export class CollectionController {
   constructor(
     private readonly collectionService: CollectionService,
+    private readonly configureService: ConfigureService,
+    private readonly contractService: ContractService,
     // TODO ToggleMint 和 ScheduleMint 是用的使用实例化出来的，而不是在constructor里，扔出去
     private readonly eventsGateway: EventsGateway,
   ) {}
@@ -41,7 +49,57 @@ export class CollectionController {
     );
     // console.log('blockHeader', blockHeader)
     console.log('xxxxxx decodedData:', decodedData);
-    this.eventsGateway.send('backtest', decodedData);
+  }
+
+  @Get('sniff')
+  async sniff(
+  ): Promise<any> {
+    const list = [SniffMint.getInstance(Net.Mainnet).toJSON()];
+    // const list = Object.values(Net).map(net=>{
+    //   return SniffMint.getInstance(net).toJSON();
+    // });
+    const configure = await this.configureService.findOne({id: SNIFF});
+
+    return {
+      list: list,
+      configure: configure.configure,
+    };
+  }
+
+  @Put('sniff')
+  async toggleSniff(@Body() item) {
+    const fm = SniffMint.getInstance(item.net);
+    if(item.toggle){
+      await fm.boot(async (data)=>{
+        const contract = {
+          net: item.net,
+          address: data.address,
+          status: Status.UNREAD,
+        };
+        const contractRow = await this.contractService.create(contract);
+        this.eventsGateway.send('sniff', contractRow);
+      });
+    }else{
+      await fm.shutdown();
+    }
+  }
+
+  @Get('sniff/contracts')
+  async sniffContracts(@Query() query) {
+    const contracts = await this.contractService.findAll({
+      net: query.net,
+      module: SNIFF,
+    });
+    
+    return contracts;
+  }
+
+  @Post('sniff/configure')
+  async sniffConfigure(@Body() item) {
+    await this.configureService.create({
+      id: SNIFF,
+      metadata: item,
+    });
   }
 
   @Get('free')
