@@ -29,7 +29,7 @@ export class Deployment {
   }
 
   static async getContractSourceCodes(contractAddress: string) {
-    const result = await axios
+    const response = await axios
       .get('https://api.etherscan.io/api', {
         params: {
           module: 'contract',
@@ -42,7 +42,30 @@ export class Deployment {
         console.log(e);
         return null;
       });
-    return result.data.result;
+    if(response.data.status !== '1'){
+      console.error(response)
+      return null;
+    }
+    const result = response.data.result;
+
+    if (result === 'Invalid API Key') {
+      console.error('Invalid API Key');
+      console.error(response)
+      return null;
+    }
+
+    if (result.length > 1) {
+      console.error('Too many SourceCodes======================');
+      console.error(response)
+      return null;
+    }
+    
+    const codeData = result[0];
+    if (codeData.SourceCode === '') {
+      // console.error('Contract not verified', codeData);
+      return null;
+    }
+    return result;
   }
 
   static getContracts(codeDatas) {

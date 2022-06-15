@@ -5,6 +5,8 @@ import { ContractEntity } from './contract.entity';
 import { CreateContractDto } from './dto';
 
 import { ContractRO, ContractsRO } from './contract.interface';
+import { Deployment } from 'src/collection/deployment';
+import { Net } from 'src/global.types';
 
 @Injectable()
 export class ContractService {
@@ -19,6 +21,18 @@ export class ContractService {
     qb.where('1 = 1');
 
     const contractsCount = await qb.getCount();
+
+    if ('createdAt' in query) {
+      qb.andWhere('contract.createdAt >= :createdAt', { createdAt: query.createdAt });
+    }
+
+    if ('net' in query) {
+      qb.andWhere('contract.net = :net', { net: query.net });
+    }
+
+    if ('verified' in query) {
+      qb.andWhere('contract.verified = :verified', { verified: query.verified });
+    }
 
     if ('limit' in query) {
       qb.limit(query.limit);
@@ -54,11 +68,55 @@ export class ContractService {
   }
 
   async update(id: string, contractData: Partial<CreateContractDto>) {
-    await this.contractRepository.update(id, contractData);
+    return await this.contractRepository.update(id, contractData);
   }
 
   async clear(): Promise<void> {
     const ret = await this.contractRepository.clear();
     return ret;
+  }
+
+  pullData() {
+    let next;
+    return (() => {
+      setInterval(async ()=>{
+        const contractsRO = await this.findAll({
+          createdAt: Date.now() - 1000 * 60 * 60 * 24,
+          net: Net.Mainnet,
+          verified: false,
+        });
+        const contracts = contractsRO.contracts;
+        // console.log('contracts.length', contracts.length, next)
+        for(let i=0; i < contracts.length; i++) {
+          const contract = contracts[i];
+          if(!next){
+            next = contract;
+          }
+
+          if(next.id === contract.id){
+            next = contracts[i+1];
+            this.updateSourceCode(contract);
+            return;
+          }
+        }
+        next = undefined;
+      }, 1000*5);
+    })();
+  }
+
+  async updateSourceCode(contract) {
+    let codes
+    try{
+      codes = await Deployment.getContractSourceCodes(contract.address);
+    }catch(e){}
+    if(!codes){
+      return;
+    }
+    const codeData = codes[0];
+    // console.log('codeData', codeData);
+    this.update(contract.id, {
+      verified: true,
+      name: codeData.ContractName,
+    });
   }
 }

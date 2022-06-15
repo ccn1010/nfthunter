@@ -8,6 +8,9 @@ export class ContractEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ nullable: true })
+  name: string;
+
   @Column()
   net: Net;
 
@@ -17,7 +20,7 @@ export class ContractEntity {
   @Column({ nullable: true })
   mintType: MintType;
 
-  @Column({ nullable: true })
+  @Column()
   verified: boolean;
 
   @Column()

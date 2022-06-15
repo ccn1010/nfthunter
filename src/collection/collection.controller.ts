@@ -70,13 +70,16 @@ export class CollectionController {
   async toggleSniff(@Body() item) {
     const fm = SniffMint.getInstance(item.net);
     if(item.toggle){
+      this.contractService.pullData();
       await fm.boot(async (data)=>{
         const contract = {
           net: item.net,
           address: data.address,
           status: Status.UNREAD,
+          verified: false,
         };
         const contractRow = await this.contractService.create(contract);
+        await this.contractService.updateSourceCode(contractRow);
         this.eventsGateway.send('sniff', contractRow);
       });
     }else{
@@ -88,7 +91,6 @@ export class CollectionController {
   async sniffContracts(@Query() query) {
     const contracts = await this.contractService.findAll({
       net: query.net,
-      module: SNIFF,
     });
     
     return contracts;
@@ -225,22 +227,7 @@ export class CollectionController {
   @Post()
   async create(@Body() body) {
     const codeDatas = await Deployment.getContractSourceCodes(body.address);
-    if (codeDatas === 'Invalid API Key') {
-      console.error('Invalid API Key');
-      return;
-    }
-
-    if (codeDatas.length > 1) {
-      console.error('Too many SourceCodes======================');
-      return;
-    }
-
     const codeData = codeDatas[0];
-    if (codeData.SourceCode === '') {
-      console.error('Invalid Address');
-      return;
-    }
-
     const contracts = await Deployment.getContracts(codeDatas);
     const contractPathList = Object.entries(contracts).map(([key, value])=>{
           return {

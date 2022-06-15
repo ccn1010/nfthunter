@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { Net } from 'src/global.types';
 import { Mint } from './mint';
 import { config } from './config';
@@ -111,8 +112,12 @@ export class SniffMint extends Mint {
         if(trx.to !== null){
           return;
         }
-
+        
         const reciept = await this.web3.eth.getTransactionReceipt(trx.hash);
+        if(!reciept.status){
+          return;
+        }
+
         const isNFT = await this.verifyIsNFT(reciept.contractAddress);
         if(!isNFT){
           return;

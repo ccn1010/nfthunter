@@ -4,6 +4,7 @@ import { Status } from "../contract.types";
 
 export class CreateContractDto {
   readonly id: string;
+  readonly name: string;
   readonly net: Net;
   readonly address: string;
   readonly mintType: MintType;
