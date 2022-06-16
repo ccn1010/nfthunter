@@ -114,7 +114,7 @@ export class SniffMint extends Mint {
         }
         
         const reciept = await this.web3.eth.getTransactionReceipt(trx.hash);
-        if(!reciept.status){
+        if(!reciept?.status){
           return;
         }
 

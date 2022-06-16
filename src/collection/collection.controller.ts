@@ -79,8 +79,8 @@ export class CollectionController {
           verified: false,
         };
         const contractRow = await this.contractService.create(contract);
-        await this.contractService.updateSourceCode(contractRow);
         this.eventsGateway.send('sniff', contractRow);
+        this.contractService.updateSourceCode(contractRow);
       });
     }else{
       await fm.shutdown();

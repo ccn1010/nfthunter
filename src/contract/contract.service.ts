@@ -7,12 +7,14 @@ import { CreateContractDto } from './dto';
 import { ContractRO, ContractsRO } from './contract.interface';
 import { Deployment } from 'src/collection/deployment';
 import { Net } from 'src/global.types';
+import { EventsGateway } from 'src/events/events.gateway';
 
 @Injectable()
 export class ContractService {
   constructor(
     @InjectRepository(ContractEntity)
     private readonly contractRepository: Repository<ContractEntity>,
+    private readonly eventsGateway: EventsGateway,
   ) {}
 
   async findAll(query): Promise<ContractsRO> {
@@ -114,9 +116,10 @@ export class ContractService {
     }
     const codeData = codes[0];
     // console.log('codeData', codeData);
-    this.update(contract.id, {
+    await this.update(contract.id, {
       verified: true,
       name: codeData.ContractName,
     });
+    this.eventsGateway.send('sniff-refresh', null);
   }
 }
